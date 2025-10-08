@@ -153,6 +153,9 @@ userSchema.methods.updateSubscription = function (type, months = 1) {
     Date.now() + months * 30 * 24 * 60 * 60 * 1000
   );
   this.subscription.isActive = true;
+  
+  // Mark the subscription path as modified to ensure Mongoose saves it
+  this.markModified('subscription');
 };
 
 module.exports = mongoose.model("User", userSchema);

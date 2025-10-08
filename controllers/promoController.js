@@ -56,15 +56,14 @@ exports.applyPromoCode = async (req, res) => {
       endDate.setMonth(endDate.getMonth() + promoCode.duration);
     }
 
-    // Update user subscription
-    user.subscription = {
-      type: promoCode.type,
-      isActive: true,
-      startDate: startDate,
-      endDate: endDate,
-      autoRenew: false, // Promo codes don't auto-renew
-      paymentMethod: 'promo_code'
-    };
+    // Update user subscription - use direct property assignment for better tracking
+    user.subscription.type = promoCode.type;
+    user.subscription.isActive = true;
+    user.subscription.startDate = startDate;
+    user.subscription.endDate = endDate;
+    
+    // Mark the subscription path as modified to ensure Mongoose saves it
+    user.markModified('subscription');
 
     // Reset trial if not used
     if (!user.usage.trialUsed) {
@@ -81,8 +80,25 @@ exports.applyPromoCode = async (req, res) => {
     });
     await promoCode.save();
 
+    // Return updated user info so frontend can update state
+    const userResponse = {
+      _id: user._id,
+      email: user.email,
+      name: user.name,
+      avatar: user.avatar,
+      subscription: {
+        type: user.subscription.type,
+        startDate: user.subscription.startDate,
+        endDate: user.subscription.endDate,
+        isActive: user.subscription.isActive
+      },
+      usage: user.usage,
+      isSubscriptionActive: user.isSubscriptionActive
+    };
+
     res.status(200).json({
       message: 'Kích hoạt Premium thành công!',
+      user: userResponse,
       subscription: user.subscription,
       promoType: promoCode.type,
       duration: promoCode.type === 'lifetime' ? 'Vĩnh viễn' : `${promoCode.duration} tháng`
