@@ -43,11 +43,16 @@ class FacebookService {
         params: {
           access_token: this.pageAccessToken,
           fields: fields,
-          limit: limit
+          limit: limit * 2 // Get more posts to sort by updated_time
         }
       });
 
-      return response.data.data.map(post => this.formatPost(post));
+      // Sort by updated_time (most recently updated first)
+      const sortedPosts = response.data.data
+        .sort((a, b) => new Date(b.updated_time) - new Date(a.updated_time))
+        .slice(0, limit);
+
+      return sortedPosts.map(post => this.formatPost(post));
     } catch (error) {
       console.error('Error fetching Facebook posts:', error.response?.data || error.message);
       
