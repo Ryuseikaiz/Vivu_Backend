@@ -51,56 +51,23 @@ class FacebookService {
         return [];
       }
 
-      // Calculate engagement score for each post
-      // Posts with recent activity (comments, reactions, shares) should rank higher
-      const postsWithScore = response.data.data.map(post => {
-        const comments = post.comments?.summary?.total_count || 0;
-        const reactions = post.reactions?.summary?.total_count || 0;
-        const shares = post.shares?.count || 0;
-
-        const updatedTime = new Date(post.updated_time || post.created_time);
-        const createdTime = new Date(post.created_time);
-        const now = new Date();
-
-        // Hours since last update
-        const hoursSinceUpdate = (now - updatedTime) / (1000 * 60 * 60);
-        const hoursSinceCreation = (now - createdTime) / (1000 * 60 * 60);
-
-        // Engagement score: higher engagement + recency = higher score
-        // Give more weight to comments (they indicate discussion)
-        const engagementScore = (comments * 3) + reactions + (shares * 2);
-
-        // Time decay: newer posts and recently updated posts get bonus
-        const timeScore = 1 / (1 + hoursSinceUpdate / 24); // Decay over days
-        const freshnessBonus = hoursSinceCreation < 168 ? 10 : 0; // Bonus if created within 7 days
-
-        const totalScore = engagementScore + (timeScore * 100) + freshnessBonus;
-
-        return {
-          post,
-          score: totalScore,
-          engagement: { comments, reactions, shares },
-          hoursSinceUpdate
-        };
-      });
-
-      // Sort by score (highest first)
-      const sortedPosts = postsWithScore
-        .sort((a, b) => b.score - a.score)
+      // Sort by created_time (most recent first)
+      const sortedPosts = response.data.data
+        .sort((a, b) => {
+          const timeA = new Date(a.created_time);
+          const timeB = new Date(b.created_time);
+          return timeB - timeA; // Newest first
+        })
         .slice(0, limit);
 
-      console.log('📊 Sorted posts by engagement score:', sortedPosts.map(p => ({
-        id: p.post.id.split('_')[1]?.substring(0, 8) || 'unknown',
-        score: Math.round(p.score),
-        comments: p.engagement.comments,
-        reactions: p.engagement.reactions,
-        shares: p.engagement.shares,
-        hoursSinceUpdate: Math.round(p.hoursSinceUpdate),
-        updated: p.post.updated_time,
-        created: p.post.created_time
+      console.log('📊 Sorted posts by created_time:', sortedPosts.map(p => ({
+        id: p.id.split('_')[1]?.substring(0, 8) || 'unknown',
+        created: p.created_time,
+        comments: p.comments?.summary?.total_count || 0,
+        reactions: p.reactions?.summary?.total_count || 0
       })));
 
-      return sortedPosts.map(item => this.formatPost(item.post));
+      return sortedPosts.map(post => this.formatPost(post));
     } catch (error) {
       console.error('Error fetching Facebook posts:', error.response?.data || error.message);
       
