@@ -68,9 +68,29 @@ router.post('/reverse-geocode', auth, async (req, res) => {
 
         if (response.data.status === 'OK' && response.data.results.length > 0) {
           const bestMatch = response.data.results[0];
+          const components = extractAddressComponents(bestMatch.address_components);
+
+          // Kiểm tra nếu ở Việt Nam, chỉ trả về tên tỉnh/thành phố
+          const isVietnam = components.country === 'Việt Nam' || components.country === 'Vietnam';
+          let simplifiedAddress = bestMatch.formatted_address;
+
+          if (isVietnam) {
+            // Tìm tỉnh/thành phố từ address_components
+            const province = bestMatch.address_components.find(comp =>
+              comp.types.includes('administrative_area_level_1')
+            );
+
+            if (province) {
+              simplifiedAddress = province.long_name;
+            } else if (components.city) {
+              simplifiedAddress = components.city;
+            }
+          }
+
           return res.json({
-            address: bestMatch.formatted_address,
-            components: extractAddressComponents(bestMatch.address_components),
+            address: simplifiedAddress,
+            fullAddress: bestMatch.formatted_address,
+            components: components,
             source: 'Google'
           });
         }
@@ -97,8 +117,17 @@ router.post('/reverse-geocode', auth, async (req, res) => {
 
       if (response.data) {
         const { display_name, address = {} } = response.data;
+        const isVietnam = address.country === 'Việt Nam' || address.country === 'Vietnam';
+
+        // Nếu ở Việt Nam, chỉ lấy tên tỉnh/thành phố
+        let simplifiedAddress = display_name;
+        if (isVietnam) {
+          simplifiedAddress = address.state || address.city || address.province || display_name;
+        }
+
         return res.json({
-          address: display_name,
+          address: simplifiedAddress,
+          fullAddress: display_name,
           components: {
             city: address.city || address.town || address.village || address.state,
             district: address.district || address.county || address.state_district,
