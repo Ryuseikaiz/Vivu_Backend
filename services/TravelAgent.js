@@ -88,6 +88,18 @@ Remember to be helpful, accurate, and provide comprehensive travel and dining in
       details.passengers = passengers;
     }
 
+    // Add budget information
+    const budget = sanitizeString(metadata.budget);
+    if (budget) {
+      details.budget = budget;
+    }
+
+    // Add travel style
+    const travelStyle = sanitizeString(metadata.travelStyle);
+    if (travelStyle) {
+      details.travelStyle = travelStyle;
+    }
+
     return details;
   }
 
@@ -119,7 +131,9 @@ Remember to be helpful, accurate, and provide comprehensive travel and dining in
       const origin = metadataDetails.origin || 'điểm xuất phát trong câu hỏi';
       const dates = metadataDetails.departureDate ? `từ ${metadataDetails.departureDate}${metadataDetails.returnDate ? ` đến ${metadataDetails.returnDate}` : ''}` : '';
       const travelers = metadataDetails.passengers ? `${metadataDetails.passengers} người` : '';
-      
+      const budget = metadataDetails.budget || 'Linh hoạt';
+      const travelStyle = metadataDetails.travelStyle || 'Cân bằng';
+
       const comprehensivePrompt = `Bạn là chuyên gia tư vấn du lịch AI chuyên nghiệp. Nhiệm vụ của bạn là cung cấp kế hoạch du lịch thực tế, chi tiết và hữu ích.
 
 📋 THÔNG TIN CHUYẾN ĐI:
@@ -127,6 +141,8 @@ Remember to be helpful, accurate, and provide comprehensive travel and dining in
 - Điểm đến: ${destination}
 - Thời gian: ${dates || 'Chưa xác định'}
 - Số khách: ${travelers || 'Chưa xác định'}
+- Ngân sách: ${budget}
+- Phong cách: ${travelStyle}
 - Yêu cầu: "${query}"
 
 🎯 HÃY TẠO KẾ HOẠCH DU LỊCH BAO GỒM:
@@ -158,14 +174,32 @@ Remember to be helpful, accurate, and provide comprehensive travel and dining in
    - Gợi ý lịch trình theo ngày
    - **QUAN TRỌNG**: Thêm link Google Maps cho mỗi địa điểm
 
-5️⃣ CHI PHÍ ƯỚC TÍNH:
+5️⃣ THUÊ XE & DI CHUYỂN:
+   - Các công ty cho thuê xe uy tín (Grab, xe máy, ô tô tự lái...)
+   - Giá thuê xe theo ngày/tuần
+   - Phương tiện công cộng (bus, tàu, xe buýt...)
+   - Chi phí di chuyển ước tính
+   - Gợi ý phương tiện phù hợp với ${travelStyle}
+   - **QUAN TRỌNG**: Thêm link đến website hoặc ứng dụng đặt xe
+
+6️⃣ TOUR & HOẠT ĐỘNG:
+   - Top 3-5 tour du lịch nổi tiếng
+   - Hoạt động thể thao phiêu lưu (lặn biển, leo núi, zipline...)
+   - Tour văn hóa/lịch sử
+   - Giá tour và thời gian
+   - Công ty tổ chức tour uy tín
+   - **QUAN TRỌNG**: Thêm link website tour hoặc đặt vé
+
+7️⃣ CHI PHÍ ƯỚC TÍNH (theo ngân sách ${budget}):
    - Vé máy bay: X - Y triệu VNĐ
    - Khách sạn: X - Y triệu VNĐ/đêm
    - Ăn uống: X - Y triệu VNĐ/ngày
    - Tham quan: X - Y triệu VNĐ
+   - Thuê xe/di chuyển: X - Y triệu VNĐ
+   - Tour & hoạt động: X - Y triệu VNĐ
    - TỔNG ƯỚC TÍNH: X - Y triệu VNĐ
 
-6️⃣ LƯU Ý QUAN TRỌNG:
+8️⃣ LƯU Ý QUAN TRỌNG:
    - Thời tiết tại ${destination}
    - Giấy tờ cần thiết (visa, passport...)
    - Phương tiện di chuyển tại địa phương
@@ -386,6 +420,8 @@ Hãy đưa ra kế hoạch CỤ THỂ, THỰC TẾ với giá cả, địa chỉ
           ${metadataDetails.departureDate ? `<p style="margin: 5px 0;"><strong>📅 Ngày đi:</strong> ${metadataDetails.departureDate}</p>` : ''}
           ${metadataDetails.returnDate ? `<p style="margin: 5px 0;"><strong>🔄 Ngày về:</strong> ${metadataDetails.returnDate}</p>` : ''}
           ${metadataDetails.passengers ? `<p style="margin: 5px 0;"><strong>👥 Số hành khách:</strong> ${metadataDetails.passengers}</p>` : ''}
+          ${metadataDetails.budget ? `<p style="margin: 5px 0;"><strong>💰 Ngân sách:</strong> ${metadataDetails.budget}</p>` : ''}
+          ${metadataDetails.travelStyle ? `<p style="margin: 5px 0;"><strong>🎨 Phong cách:</strong> ${metadataDetails.travelStyle}</p>` : ''}
         </div>
       </div>
       
