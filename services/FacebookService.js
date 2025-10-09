@@ -43,14 +43,30 @@ class FacebookService {
         params: {
           access_token: this.pageAccessToken,
           fields: fields,
-          limit: limit * 2 // Get more posts to sort by updated_time
+          limit: limit * 3 // Get more posts to have better sorting pool
         }
       });
 
+      if (!response.data.data || response.data.data.length === 0) {
+        return [];
+      }
+
       // Sort by updated_time (most recently updated first)
+      // If updated_time is missing, fall back to created_time
       const sortedPosts = response.data.data
-        .sort((a, b) => new Date(b.updated_time) - new Date(a.updated_time))
+        .sort((a, b) => {
+          const timeA = new Date(a.updated_time || a.created_time);
+          const timeB = new Date(b.updated_time || b.created_time);
+          return timeB - timeA; // Most recent first
+        })
         .slice(0, limit);
+
+      console.log('📊 Sorted posts by updated_time:', sortedPosts.map(p => ({
+        id: p.id.split('_')[1],
+        updated: p.updated_time,
+        created: p.created_time,
+        comments: p.comments?.summary?.total_count || 0
+      })));
 
       return sortedPosts.map(post => this.formatPost(post));
     } catch (error) {
