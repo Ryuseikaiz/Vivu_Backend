@@ -98,6 +98,7 @@ const blogRoutes = require('./routes/blog');
 const uploadRoutes = require('./routes/upload');
 const promoRoutes = require('./routes/promo');
 const facebookRoutes = require('./routes/facebook');
+const chatRoutes = require('./routes/chat');
 
 // Initialize services
 const travelAgent = new TravelAgent();
@@ -114,6 +115,7 @@ app.use('/api/blog', blogRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/promo', promoRoutes);
 app.use('/api/facebook', facebookRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Protected travel routes
 app.post('/api/travel/search', searchLimiter, auth, checkSubscription, async (req, res) => {

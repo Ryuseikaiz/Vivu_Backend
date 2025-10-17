@@ -8,7 +8,7 @@ const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 // Get nearby places using Google Places API
 router.post('/nearby', auth, async (req, res) => {
   try {
-    const { location, category, radius = 5000 } = req.body;
+    const { location, category, keyword, radius = 10000 } = req.body; // Default 10km
 
     if (!location || !location.lat || !location.lng) {
       return res.status(400).json({ error: 'Location coordinates required' });
@@ -19,21 +19,59 @@ router.post('/nearby', auth, async (req, res) => {
       return res.json({ places: getMockPlaces(category) });
     }
 
+    // Build API params
+    const apiParams = {
+      location: `${location.lat},${location.lng}`,
+      radius: radius,
+      key: GOOGLE_MAPS_API_KEY,
+      language: 'vi'
+    };
+
+    // Use keyword search if provided (more specific), otherwise use type
+    if (keyword) {
+      apiParams.keyword = keyword;
+      console.log(`🔍 Searching with keyword: "${keyword}", radius: ${radius}m`);
+    } else {
+      apiParams.type = category;
+      console.log(`🔍 Searching with type: "${category}", radius: ${radius}m`);
+    }
+
+    // First request
     const response = await axios.get('https://maps.googleapis.com/maps/api/place/nearbysearch/json', {
-      params: {
-        location: `${location.lat},${location.lng}`,
-        radius: radius,
-        type: category,
-        key: GOOGLE_MAPS_API_KEY,
-        language: 'vi'
-      }
+      params: apiParams
     });
 
-    if (response.data.status === 'OK') {
-      const places = response.data.results.map(place => ({
+    if (response.data.status === 'OK' || response.data.status === 'ZERO_RESULTS') {
+      let allPlaces = response.data.results || [];
+      let nextPageToken = response.data.next_page_token;
+      
+      // Fetch additional pages if available (Google Places API returns max 60 results total)
+      while (nextPageToken && allPlaces.length < 60) {
+        // Wait 2 seconds before next request (Google requirement)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        const nextResponse = await axios.get('https://maps.googleapis.com/maps/api/place/nearbysearch/json', {
+          params: {
+            pagetoken: nextPageToken,
+            key: GOOGLE_MAPS_API_KEY
+          }
+        });
+        
+        if (nextResponse.data.status === 'OK') {
+          allPlaces = allPlaces.concat(nextResponse.data.results);
+          nextPageToken = nextResponse.data.next_page_token;
+          console.log(`📄 Fetched page, total: ${allPlaces.length} places`);
+        } else {
+          break;
+        }
+      }
+      
+      const places = allPlaces.map(place => ({
         ...place,
         source: 'Google'
       }));
+      
+      console.log(`✅ Found ${places.length} places total`);
       res.json({ places });
     } else {
       console.error('Google Places API Error:', response.data.status, response.data.error_message);
