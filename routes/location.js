@@ -624,4 +624,121 @@ function extractComponentsFromOsm(address = {}) {
   };
 }
 
+// Get place reviews using Google Places API
+router.get('/place/:placeId/reviews', auth, async (req, res) => {
+  try {
+    const { placeId } = req.params;
+
+    if (!placeId) {
+      return res.status(400).json({ error: 'Place ID required' });
+    }
+
+    if (!GOOGLE_MAPS_API_KEY) {
+      console.warn('GOOGLE_MAPS_API_KEY is not set. Returning mock reviews.');
+      return res.json({ 
+        place: { 
+          name: 'Sample Place',
+          rating: 4.5,
+          user_ratings_total: 120
+        },
+        reviews: getMockReviews() 
+      });
+    }
+
+    const response = await axios.get('https://maps.googleapis.com/maps/api/place/details/json', {
+      params: {
+        place_id: placeId,
+        fields: 'name,rating,user_ratings_total,reviews',
+        key: GOOGLE_MAPS_API_KEY,
+        language: 'vi'
+      }
+    });
+
+    if (response.data.status === 'OK') {
+      const place = response.data.result;
+      
+      // Log first review to see what Google returns
+      if (place.reviews && place.reviews.length > 0) {
+        console.log('📸 First review data from Google:', {
+          author_name: place.reviews[0].author_name,
+          has_profile_photo_url: !!place.reviews[0].profile_photo_url,
+          profile_photo_url: place.reviews[0].profile_photo_url?.substring(0, 100)
+        });
+      }
+      
+      // Process reviews to ensure proper avatar URLs
+      const enhancedReviews = (place.reviews || []).map(review => {
+        // Google returns profile_photo_url - use it if available
+        // Otherwise generate avatar from name
+        if (!review.profile_photo_url) {
+          const colors = ['667eea', 'f59e0b', 'ec4899', '10b981', '3b82f6', 'ef4444', '8b5cf6'];
+          const randomColor = colors[Math.floor(Math.random() * colors.length)];
+          const encodedName = encodeURIComponent(review.author_name || 'User');
+          review.profile_photo_url = `https://ui-avatars.com/api/?name=${encodedName}&background=${randomColor}&color=fff&size=128&bold=true`;
+        }
+        
+        // Keep all original review data including author_url if available
+        return {
+          author_name: review.author_name,
+          author_url: review.author_url, // Link to Google profile
+          language: review.language,
+          profile_photo_url: review.profile_photo_url,
+          rating: review.rating,
+          relative_time_description: review.relative_time_description,
+          text: review.text,
+          time: review.time,
+          translated: review.translated
+        };
+      });
+      
+      console.log(`📝 Processed ${enhancedReviews.length} reviews with avatars`);
+      
+      res.json({ 
+        place: {
+          name: place.name,
+          rating: place.rating,
+          user_ratings_total: place.user_ratings_total
+        },
+        reviews: enhancedReviews 
+      });
+    } else {
+      console.error('Google Places Details API Error:', response.data.status);
+      res.status(500).json({ 
+        error: 'Failed to fetch place reviews', 
+        details: response.data.status 
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching place reviews:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Mock reviews for testing
+function getMockReviews() {
+  return [
+    {
+      author_name: 'Nguyễn Văn A',
+      rating: 5,
+      text: 'Địa điểm tuyệt vời! Phong cảnh đẹp, không khí trong lành. Rất đáng để ghé thăm.',
+      time: Math.floor(Date.now() / 1000) - 86400 * 5, // 5 days ago
+      profile_photo_url: 'https://ui-avatars.com/api/?name=Nguyen+Van+A&background=667eea&color=fff&size=128'
+    },
+    {
+      author_name: 'Trần Thị B',
+      rating: 4,
+      text: 'Nơi này khá đẹp, tuy nhiên hơi đông người vào cuối tuần. Nên đi vào ngày thường.',
+      time: Math.floor(Date.now() / 1000) - 86400 * 12, // 12 days ago
+      profile_photo_url: 'https://ui-avatars.com/api/?name=Tran+Thi+B&background=f59e0b&color=fff&size=128'
+    },
+    {
+      author_name: 'Lê Văn C',
+      rating: 5,
+      text: 'Tuyệt vời! Phục vụ tốt, giá cả hợp lý. Sẽ quay lại lần nữa.',
+      time: Math.floor(Date.now() / 1000) - 86400 * 30, // 30 days ago
+      profile_photo_url: 'https://ui-avatars.com/api/?name=Le+Van+C&background=ec4899&color=fff&size=128'
+    }
+  ];
+}
+
 module.exports = router;
