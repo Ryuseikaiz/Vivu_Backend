@@ -82,6 +82,7 @@ const paymentRoutes = require('../routes/payment');
 const promoRoutes = require('../routes/promo');
 const uploadRoutes = require('../routes/upload');
 const facebookRoutes = require('../routes/facebook');
+const adminRoutes = require('../routes/admin');
 
 // Import middleware
 const { auth, checkSubscription } = require('../middleware/auth');
@@ -101,6 +102,7 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/promo', promoRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/facebook', facebookRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Travel search route
 const { v4: uuidv4 } = require('uuid');
