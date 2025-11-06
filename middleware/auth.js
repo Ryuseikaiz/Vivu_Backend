@@ -12,8 +12,9 @@ const auth = async (req, res, next) => {
       });
     }
 
-    // Use JWT_ACCESS_SECRET to match the token generation
-    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    // Use the same secret as token generation
+    const secret = process.env.JWT_SECRET || process.env.JWT_ACCESS_SECRET;
+    const decoded = jwt.verify(token, secret);
     const user = await User.findById(decoded.id); // Use 'id' not 'userId'
     
     if (!user) {

@@ -144,6 +144,7 @@ exports.register = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "Registration successful.",
+      token: accessToken,
       accessToken,
       user: userObject
     });
@@ -193,6 +194,8 @@ exports.login = async (req, res) => {
 
     res.status(200).json({ 
       success: true,
+      message: "Login successful.",
+      token: accessToken,
       accessToken, 
       user: userObject 
     });
