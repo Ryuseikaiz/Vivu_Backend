@@ -42,6 +42,11 @@ const userSchema = new mongoose.Schema(
       enum: ['local', 'google', 'facebook'],
       default: 'local',
     },
+    role: {
+      type: String,
+      enum: ['user', 'admin'],
+      default: 'user',
+    },
     emailVerified: {
       type: Boolean,
       default: false,
@@ -81,6 +86,14 @@ const userSchema = new mongoose.Schema(
         type: Date,
       },
     },
+    promoCodes: [{
+      code: String,
+      usedAt: {
+        type: Date,
+        default: Date.now
+      },
+      type: String
+    }],
     paymentHistory: [
       {
         orderId: String,

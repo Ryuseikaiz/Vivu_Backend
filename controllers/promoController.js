@@ -70,6 +70,17 @@ exports.applyPromoCode = async (req, res) => {
       user.usage.trialUsed = false;
     }
 
+    // Add promo code to user's promo history
+    if (!user.promoCodes) {
+      user.promoCodes = [];
+    }
+    user.promoCodes.push({
+      code: promoCode.code,
+      usedAt: now,
+      type: promoCode.type
+    });
+    user.markModified('promoCodes');
+
     await user.save();
 
     // Update promo code usage
