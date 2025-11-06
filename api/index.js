@@ -49,17 +49,47 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Connect to MongoDB
-if (!mongoose.connection.readyState) {
-  mongoose.connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => {
-    console.error('MongoDB connection error:', err);
-  });
-}
+// MongoDB connection promise
+let mongoConnection = null;
+
+const connectDB = async () => {
+  if (mongoConnection && mongoose.connection.readyState === 1) {
+    return mongoConnection;
+  }
+  
+  if (!mongoConnection) {
+    mongoConnection = mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
+  }
+  
+  try {
+    await mongoConnection;
+    console.log('✅ Connected to MongoDB');
+    return mongoConnection;
+  } catch (err) {
+    console.error('❌ MongoDB connection error:', err);
+    mongoConnection = null;
+    throw err;
+  }
+};
+
+// Middleware to ensure DB connection
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error('Database connection failed:', error);
+    res.status(503).json({ 
+      error: 'Database connection failed',
+      message: 'Unable to connect to database. Please try again later.'
+    });
+  }
+});
 
 // Rate limiting
 const limiter = rateLimit({
