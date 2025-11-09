@@ -12,7 +12,7 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: function() {
+      required: function () {
         // Password is required only if not using OAuth
         return !this.googleId && !this.facebookId;
       },
@@ -39,13 +39,13 @@ const userSchema = new mongoose.Schema(
     },
     authProvider: {
       type: String,
-      enum: ['local', 'google', 'facebook'],
-      default: 'local',
+      enum: ["local", "google", "facebook"],
+      default: "local",
     },
     role: {
       type: String,
-      enum: ['user', 'admin'],
-      default: 'user',
+      enum: ["user", "admin"],
+      default: "user",
     },
     emailVerified: {
       type: Boolean,
@@ -54,7 +54,14 @@ const userSchema = new mongoose.Schema(
     subscription: {
       type: {
         type: String,
-        enum: ["trial", "monthly", "yearly", "lifetime", "quarterly", "expired"],
+        enum: [
+          "trial",
+          "monthly",
+          "yearly",
+          "lifetime",
+          "quarterly",
+          "expired",
+        ],
         default: "trial",
       },
       startDate: {
@@ -86,14 +93,16 @@ const userSchema = new mongoose.Schema(
         type: Date,
       },
     },
-    promoCodes: [{
-      code: String,
-      usedAt: {
-        type: Date,
-        default: Date.now
+    promoCodes: [
+      {
+        code: String,
+        usedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        type: String,
       },
-      type: String
-    }],
+    ],
     paymentHistory: [
       {
         orderId: String,
@@ -116,8 +125,8 @@ userSchema.pre("save", async function (next) {
   if (!this.isModified("password") || !this.password) return next();
 
   try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
+    // const salt = await bcrypt.genSalt(12);
+    this.password = await bcrypt.hash(this.password, 12);
     next();
   } catch (error) {
     next(error);
@@ -135,7 +144,7 @@ userSchema.methods.canUseTrial = function () {
 };
 
 // Virtual property for subscription active status
-userSchema.virtual('isSubscriptionActive').get(function() {
+userSchema.virtual("isSubscriptionActive").get(function () {
   if (this.subscription.type === "trial" && !this.usage.trialUsed) {
     return true;
   }
@@ -148,8 +157,8 @@ userSchema.virtual('isSubscriptionActive').get(function() {
 });
 
 // Ensure virtuals are included when converting to JSON
-userSchema.set('toJSON', { virtuals: true });
-userSchema.set('toObject', { virtuals: true });
+userSchema.set("toJSON", { virtuals: true });
+userSchema.set("toObject", { virtuals: true });
 
 // Use trial
 userSchema.methods.useTrial = function () {
@@ -166,9 +175,9 @@ userSchema.methods.updateSubscription = function (type, months = 1) {
     Date.now() + months * 30 * 24 * 60 * 60 * 1000
   );
   this.subscription.isActive = true;
-  
+
   // Mark the subscription path as modified to ensure Mongoose saves it
-  this.markModified('subscription');
+  this.markModified("subscription");
 };
 
 module.exports = mongoose.model("User", userSchema);

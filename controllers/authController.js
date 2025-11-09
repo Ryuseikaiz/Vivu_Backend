@@ -11,12 +11,12 @@ const generateTokens = (user) => {
   const accessToken = jwt.sign(
     { id: user._id, role: user.role },
     process.env.JWT_SECRET || process.env.JWT_ACCESS_SECRET,
-    { expiresIn: process.env.ACCESS_TOKEN_EXPIRES_IN || '7d' }
+    { expiresIn: process.env.ACCESS_TOKEN_EXPIRES_IN || "7d" }
   );
   const refreshToken = jwt.sign(
     { id: user._id, role: user.role },
     process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
-    { expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN || '30d' }
+    { expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN || "30d" }
   );
   return { accessToken, refreshToken };
 };
@@ -29,10 +29,10 @@ const generateTokens = (user) => {
 exports.googleLogin = async (req, res) => {
   const { tokenId, credential } = req.body;
   const token = tokenId || credential;
-  
-  console.log('Google login request received');
-  console.log('Token present:', !!token);
-  
+
+  console.log("Google login request received");
+  console.log("Token present:", !!token);
+
   try {
     if (!token) {
       return res.status(400).json({ message: "No token provided." });
@@ -42,11 +42,11 @@ exports.googleLogin = async (req, res) => {
       idToken: token,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
-    
+
     const payload = ticket.getPayload();
     const { email_verified, name, email, picture } = payload;
 
-    console.log('Token verified for email:', email);
+    console.log("Token verified for email:", email);
 
     if (!email_verified) {
       return res.status(400).json({ message: "Google email is not verified." });
@@ -55,30 +55,31 @@ exports.googleLogin = async (req, res) => {
     let user = await User.findOne({ email });
 
     if (user) {
-      console.log('Existing user found:', user.email);
+      console.log("Existing user found:", user.email);
       if (user.status === "banned") {
         return res.status(403).json({
-          message: "Your account has been banned. Please contact an administrator.",
+          message:
+            "Your account has been banned. Please contact an administrator.",
           errorCode: "ACCOUNT_BANNED",
         });
       }
     } else {
-      console.log('Creating new user for:', email);
+      console.log("Creating new user for:", email);
       const nameParts = name.split(" ");
       user = new User({
         name: name,
         email: email,
-        password: null,
+        password: "hehehe123",
         googleId: payload.sub,
         avatar: picture,
         verified: true,
       });
       await user.save();
-      console.log('New user created:', user.email);
+      console.log("New user created:", user.email);
     }
 
     const { accessToken, refreshToken } = generateTokens(user);
-    
+
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -89,17 +90,17 @@ exports.googleLogin = async (req, res) => {
     const userObject = user.toObject();
     delete userObject.password;
 
-    console.log('Google login successful for:', email);
-    res.status(200).json({ 
+    console.log("Google login successful for:", email);
+    res.status(200).json({
       success: true,
-      accessToken, 
-      user: userObject 
+      accessToken,
+      user: userObject,
     });
   } catch (error) {
-    console.error('Google authentication error:', error);
-    res.status(500).json({ 
-      message: "Google authentication error.", 
-      error: error.message 
+    console.error("Google authentication error:", error);
+    res.status(500).json({
+      message: "Google authentication error.",
+      error: error.message,
     });
   }
 };
@@ -112,9 +113,11 @@ exports.googleLogin = async (req, res) => {
 exports.register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    
+
     if (!name || !email || !password) {
-      return res.status(400).json({ message: "Please provide all required fields." });
+      return res
+        .status(400)
+        .json({ message: "Please provide all required fields." });
     }
 
     const existingUser = await User.findOne({ email });
@@ -130,7 +133,7 @@ exports.register = async (req, res) => {
     });
 
     const { accessToken, refreshToken } = generateTokens(newUser);
-    
+
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -146,7 +149,7 @@ exports.register = async (req, res) => {
       message: "Registration successful.",
       token: accessToken,
       accessToken,
-      user: userObject
+      user: userObject,
     });
   } catch (error) {
     console.error(error);
@@ -175,13 +178,14 @@ exports.login = async (req, res) => {
 
     if (user.status === "banned") {
       return res.status(403).json({
-        message: "Your account has been banned. Please contact an administrator.",
+        message:
+          "Your account has been banned. Please contact an administrator.",
         errorCode: "ACCOUNT_BANNED",
       });
     }
 
     const { accessToken, refreshToken } = generateTokens(user);
-    
+
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -192,12 +196,12 @@ exports.login = async (req, res) => {
     const userObject = user.toObject();
     delete userObject.password;
 
-    res.status(200).json({ 
+    res.status(200).json({
       success: true,
       message: "Login successful.",
       token: accessToken,
-      accessToken, 
-      user: userObject 
+      accessToken,
+      user: userObject,
     });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
