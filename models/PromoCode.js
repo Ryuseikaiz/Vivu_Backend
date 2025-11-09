@@ -10,11 +10,11 @@ const promoCodeSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['monthly', 'quarterly', 'lifetime'],
+    enum: ['monthly', 'yearly', 'lifetime'],
     required: true
   },
   duration: {
-    type: Number, // số tháng (1, 3, hoặc 999 cho lifetime)
+    type: Number, // số tháng (1 cho monthly, 12 cho yearly, 999 cho lifetime)
     required: true
   },
   maxUses: {
